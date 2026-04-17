@@ -1,7 +1,7 @@
 > [!IMPORTANT]
 > W.I.P
 
-# # apw (Another Pennyworth)
+# apw (Another Pennyworth)
 
 A lightweight Command Line Interface (CLI) application for managing tasks.
 
