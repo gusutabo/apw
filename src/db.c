@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 
-#define DB_FILE "tasks.db"
-
 sqlite3* db_open()
 {
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.apw-tasks.db", getenv("HOME"));
+
     sqlite3 *db;
-    if (sqlite3_open(DB_FILE, &db) != SQLITE_OK)
+    if (sqlite3_open(path, &db) != SQLITE_OK)
         return NULL;
 
     return db;
@@ -77,7 +78,7 @@ int db_list_tasks()
 
         printf("[%d] %s %s - %s\n",
                id,
-               done ? "✔" : " ",
+               done ? "x" : " ",
                name ? (const char*)name : "",
                desc ? (const char*)desc : "");
     }
