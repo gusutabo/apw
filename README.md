@@ -43,6 +43,10 @@ Start the application with Maven:
 mvn clean javafx:run
 ```
 
+## Windows installer
+
+The GitHub Actions workflow builds a Windows x64 installer on every push and pull request. It can also be started manually from the Actions tab. Download the `apw-windows-x64-installer` artifact and run `APW-1.0.0.msi`. The installer includes the Java runtime and creates Start Menu and desktop shortcuts. MySQL Server must be installed and running separately. The default connection is `localhost:3306` with user `root` and an empty password; configure the `APW_DB_*` environment variables above to use different credentials or URLs.
+
 ## Kanban
 
 Use the **List / Board** switch at the top to change views. In the board, drag a card to another column to change its status, or click it to edit it in the details panel. The **Status** field in the details panel does the same thing, and *Done* is kept in sync with *Mark as completed*.

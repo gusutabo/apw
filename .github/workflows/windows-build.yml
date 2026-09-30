@@ -1,0 +1,89 @@
+```yaml
+name: Windows build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build Windows runtime image
+        run: .\mvnw.cmd -B clean javafx:jlink
+
+      - name: Package application JAR
+        run: .\mvnw.cmd -B package
+
+      - name: Prepare application and MySQL dependencies
+        run: |
+          $inputDirectory = Join-Path $env:GITHUB_WORKSPACE 'target/jpackage-input'
+          New-Item -ItemType Directory -Force -Path $inputDirectory | Out-Null
+
+          .\mvnw.cmd -B dependency:copy-dependencies "-DincludeScope=runtime" "-DexcludeGroupIds=org.openjfx" "-DoutputDirectory=$inputDirectory"
+
+          $appJar = Get-ChildItem target -Filter 'apw-*.jar' -File |
+            Where-Object {
+              $_.Name -notlike '*-sources.jar' -and
+              $_.Name -notlike '*-javadoc.jar'
+            } |
+            Select-Object -First 1
+
+          if (-not $appJar) {
+            throw 'Maven did not produce the APW application JAR under target.'
+          }
+
+          $packagedJar = Join-Path $inputDirectory 'apw.jar'
+
+          Copy-Item $appJar.FullName $packagedJar
+
+          if (-not (Test-Path $packagedJar)) {
+            throw 'Failed to copy the APW application JAR into the jpackage input directory.'
+          }
+
+      - name: Build Windows installer
+        run: >-
+          jpackage.exe
+          --type msi
+          --name APW
+          --app-version 1.0.0
+          --vendor "Gusutabo"
+          --input target/jpackage-input
+          --main-jar apw.jar
+          --main-class com.gusutabo.apw.Launcher
+          --runtime-image target/app
+          --java-options "--add-modules=javafx.controls,javafx.fxml"
+          --win-upgrade-uuid d9c1f094-89c0-4b57-9a9f-043bfa0e2de2
+          --win-per-user-install
+          --win-menu
+          --win-menu-group APW
+          --win-shortcut
+          --dest target/installer
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: apw-windows-x64-installer
+          path: target/installer/*.msi
+          if-no-files-found: error
+          retention-days: 14
+```
+
+Esse é o `windows-build.yml` da branch `feat/kanban`, com a correção aplicada ao comando que causou o erro.
+
+**Certeza: alta.** O próximo passo é substituir o conteúdo de `.github/workflows/windows-build.yml`, fazer commit e executar o workflow novamente.
