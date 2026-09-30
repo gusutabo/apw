@@ -23,15 +23,32 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build Windows runtime image
+      - name: Build JavaFX runtime image
         run: .\mvnw.cmd -B clean javafx:jlink
+
+      - name: Verify generated runtime
+        shell: pwsh
+        run: |
+          $java = Join-Path $env:GITHUB_WORKSPACE 'target/app/bin/java.exe'
+
+          if (-not (Test-Path $java)) {
+            throw "Generated Java runtime was not found at: $java"
+          }
+
+          & $java -version
 
       - name: Package application JAR
         run: .\mvnw.cmd -B package
 
-      - name: Prepare application and MySQL dependencies
+      - name: Prepare jpackage input
+        shell: pwsh
         run: |
           $inputDirectory = Join-Path $env:GITHUB_WORKSPACE 'target/jpackage-input'
+
+          if (Test-Path $inputDirectory) {
+            Remove-Item $inputDirectory -Recurse -Force
+          }
+
           New-Item -ItemType Directory -Force -Path $inputDirectory | Out-Null
 
           .\mvnw.cmd -B dependency:copy-dependencies "-DincludeScope=runtime" "-DexcludeGroupIds=org.openjfx" "-DoutputDirectory=$inputDirectory"
@@ -47,32 +64,87 @@ jobs:
             throw 'Maven did not produce the APW application JAR under target.'
           }
 
+          Copy-Item $appJar.FullName (Join-Path $inputDirectory 'apw.jar') -Force
+
           $packagedJar = Join-Path $inputDirectory 'apw.jar'
 
-          Copy-Item $appJar.FullName $packagedJar
-
           if (-not (Test-Path $packagedJar)) {
-            throw 'Failed to copy the APW application JAR into the jpackage input directory.'
+            throw 'Failed to copy APW application JAR into jpackage input directory.'
           }
 
-      - name: Build Windows installer
-        run: >-
-          jpackage.exe
-          --type msi
-          --name APW
-          --app-version 1.0.0
-          --vendor "Gusutabo"
-          --input target/jpackage-input
-          --main-jar apw.jar
-          --main-class com.gusutabo.apw.Launcher
-          --runtime-image target/app
-          --java-options "--add-modules=javafx.controls,javafx.fxml"
-          --win-upgrade-uuid d9c1f094-89c0-4b57-9a9f-043bfa0e2de2
-          --win-per-user-install
-          --win-menu
-          --win-menu-group APW
-          --win-shortcut
-          --dest target/installer
+          Write-Host "jpackage input:"
+          Get-ChildItem $inputDirectory -File |
+            Select-Object Name, Length
+
+      - name: Build application image
+        shell: pwsh
+        run: |
+          if (Test-Path 'target/installer') {
+            Remove-Item 'target/installer' -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Force -Path 'target/installer' | Out-Null
+
+          jpackage.exe `
+            --type app-image `
+            --name APW `
+            --app-version 1.0.0 `
+            --vendor "Gusutabo" `
+            --input target/jpackage-input `
+            --main-jar apw.jar `
+            --main-class com.gusutabo.apw.Launcher `
+            --runtime-image target/app `
+            --java-options "--add-modules=javafx.controls,javafx.fxml" `
+            --dest target/installer
+
+      - name: Verify application image
+        shell: pwsh
+        run: |
+          $appExe = Join-Path $env:GITHUB_WORKSPACE 'target/installer/APW/APW.exe'
+          $runtimeJava = Join-Path $env:GITHUB_WORKSPACE 'target/installer/APW/runtime/bin/java.exe'
+
+          if (-not (Test-Path $appExe)) {
+            throw "APW.exe was not generated: $appExe"
+          }
+
+          if (-not (Test-Path $runtimeJava)) {
+            throw "Bundled JVM was not generated: $runtimeJava"
+          }
+
+          Write-Host "Bundled JVM:"
+          & $runtimeJava -version
+
+          Write-Host "Application executable:"
+          Get-Item $appExe | Select-Object FullName, Length
+
+      - name: Build Windows MSI
+        shell: pwsh
+        run: |
+          jpackage.exe `
+            --type msi `
+            --name APW `
+            --app-version 1.0.0 `
+            --vendor "Gusutabo" `
+            --app-image target/installer/APW `
+            --win-upgrade-uuid d9c1f094-89c0-4b57-9a9f-043bfa0e2de2 `
+            --win-per-user-install `
+            --win-menu `
+            --win-menu-group APW `
+            --win-shortcut `
+            --dest target/installer
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem target/installer -Filter '*.msi' -File | Select-Object -First 1
+
+          if (-not $msi) {
+            throw 'MSI installer was not generated.'
+          }
+
+          Write-Host "Generated installer:"
+          Write-Host $msi.FullName
+          Write-Host "Size: $($msi.Length) bytes"
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
