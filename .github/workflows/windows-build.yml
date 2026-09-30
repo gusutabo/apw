@@ -1,0 +1,35 @@
+name: Windows build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build Windows runtime image
+        run: .\mvnw.cmd -B clean javafx:jlink
+
+      - name: Upload Windows application
+        uses: actions/upload-artifact@v4
+        with:
+          name: apw-windows-x64
+          path: target/app/
+          if-no-files-found: error
+          retention-days: 14

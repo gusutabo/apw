@@ -145,7 +145,7 @@ public class TaskController {
         } catch (SQLException e) {
             showError(
                     "Banco de dados",
-                    "Não foi possível conectar ao MySQL.",
+                    "Não foi possível abrir o banco de dados local.",
                     e
             );
         }

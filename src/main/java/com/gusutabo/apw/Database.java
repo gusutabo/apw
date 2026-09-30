@@ -1,67 +1,41 @@
 package com.gusutabo.apw;
 
 import java.sql.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class Database {
 
-    private static final String DB_NAME = "apw";
-
-    private static final String USER =
-            System.getenv().getOrDefault("APW_DB_USER", "root");
-
-    private static final String PASSWORD =
-            System.getenv().getOrDefault("APW_DB_PASSWORD", "");
-
-    private static final String SERVER_URL =
-            System.getenv().getOrDefault(
-                    "APW_DB_SERVER_URL",
-                    "jdbc:mysql://localhost:3306/?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
-            );
-
-    private static final String DB_URL =
-            System.getenv().getOrDefault(
-                    "APW_DB_URL",
-                    "jdbc:mysql://localhost:3306/" + DB_NAME
-                            + "?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
-            );
+    private static final Path DB_PATH = Path.of(
+            System.getProperty("user.home"), ".apw", "apw.db");
 
     private Database() {
     }
 
     public static void initialize() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(
-                SERVER_URL, USER, PASSWORD);
-             Statement statement = connection.createStatement()) {
-
-            statement.executeUpdate(
-                    "CREATE DATABASE IF NOT EXISTS " + DB_NAME
-                            + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-            );
-        }
-
         try (Connection connection = getConnection();
              Statement statement = connection.createStatement()) {
 
             statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS tasks (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        description VARCHAR(255) NOT NULL,
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        description TEXT NOT NULL,
                         details TEXT,
-                        done BOOLEAN NOT NULL DEFAULT FALSE,
-                        category VARCHAR(50) NOT NULL DEFAULT 'None',
-                        status VARCHAR(20) NOT NULL DEFAULT 'TODO',
-                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        done INTEGER NOT NULL DEFAULT 0,
+                        category TEXT NOT NULL DEFAULT 'None',
+                        status TEXT NOT NULL DEFAULT 'TODO',
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                     """);
 
             statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS subtasks (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        task_id INT NOT NULL,
-                        description VARCHAR(255) NOT NULL,
-                        done BOOLEAN NOT NULL DEFAULT FALSE,
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        task_id INTEGER NOT NULL,
+                        description TEXT NOT NULL,
+                        done INTEGER NOT NULL DEFAULT 0,
                         FOREIGN KEY (task_id) REFERENCES tasks(id)
                             ON DELETE CASCADE
                     )
@@ -73,72 +47,56 @@ public final class Database {
     }
 
     private static void ensureCategoryColumn() throws SQLException {
-        String sql = """
-                SELECT COUNT(*)
-                FROM information_schema.columns
-                WHERE table_schema = ?
-                  AND table_name = 'tasks'
-                  AND column_name = 'category'
-                """;
-
         try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setString(1, DB_NAME);
-
-            try (ResultSet result = statement.executeQuery()) {
-                result.next();
-
-                if (result.getInt(1) == 0) {
-                    try (Statement alter = connection.createStatement()) {
-                        alter.executeUpdate(
-                                "ALTER TABLE tasks "
-                                        + "ADD COLUMN category VARCHAR(50) "
-                                        + "NOT NULL DEFAULT 'None'"
-                        );
-                    }
-                }
+             Statement statement = connection.createStatement()) {
+            if (!hasColumn(statement, "category")) {
+                statement.executeUpdate(
+                        "ALTER TABLE tasks ADD COLUMN category TEXT NOT NULL DEFAULT 'None'"
+                );
             }
         }
     }
 
+    private static boolean hasColumn(Statement statement, String columnName)
+            throws SQLException {
+        try (ResultSet columns = statement.executeQuery("PRAGMA table_info(tasks)")) {
+            while (columns.next()) {
+                if (columnName.equalsIgnoreCase(columns.getString("name"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /** Adds the kanban status column to databases created by older versions. */
     private static void ensureStatusColumn() throws SQLException {
-        String sql = """
-                SELECT COUNT(*)
-                FROM information_schema.columns
-                WHERE table_schema = ?
-                  AND table_name = 'tasks'
-                  AND column_name = 'status'
-                """;
-
         try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setString(1, DB_NAME);
-
-            try (ResultSet result = statement.executeQuery()) {
-                result.next();
-
-                if (result.getInt(1) == 0) {
-                    try (Statement alter = connection.createStatement()) {
-                        alter.executeUpdate(
-                                "ALTER TABLE tasks "
-                                        + "ADD COLUMN status VARCHAR(20) "
-                                        + "NOT NULL DEFAULT 'TODO'"
-                        );
-                        // Tarefas já concluídas vão direto para a coluna Done
-                        alter.executeUpdate(
-                                "UPDATE tasks SET status = 'DONE' WHERE done = TRUE"
-                        );
-                    }
-                }
+             Statement statement = connection.createStatement()) {
+            if (!hasColumn(statement, "status")) {
+                statement.executeUpdate(
+                        "ALTER TABLE tasks ADD COLUMN status TEXT NOT NULL DEFAULT 'TODO'"
+                );
+                statement.executeUpdate(
+                        "UPDATE tasks SET status = 'DONE' WHERE done = 1"
+                );
             }
         }
     }
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(DB_URL, USER, PASSWORD);
+        try {
+            Files.createDirectories(DB_PATH.getParent());
+            Connection connection = DriverManager.getConnection(
+                    "jdbc:sqlite:" + DB_PATH);
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("PRAGMA foreign_keys = ON");
+            }
+            return connection;
+        } catch (java.io.IOException e) {
+            throw new SQLException(
+                    "Não foi possível criar o diretório do banco de dados.", e);
+        }
     }
 
     public static List<Task> loadTasks() throws SQLException {
