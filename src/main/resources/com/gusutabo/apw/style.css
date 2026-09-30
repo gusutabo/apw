@@ -385,3 +385,83 @@
     -fx-faint-focus-color: transparent;
 }
 .link-button:hover { -fx-underline: true; }
+
+/* ---------- Alternador List / Board ---------- */
+.view-switch {
+    -fx-background-color: #e9eaee;
+    -fx-background-radius: 9;
+    -fx-padding: 3;
+    -fx-spacing: 2;
+}
+.view-toggle {
+    -fx-background-color: transparent;
+    -fx-background-radius: 7;
+    -fx-background-insets: 0;
+    -fx-text-fill: #77778a;
+    -fx-font-weight: bold;
+    -fx-padding: 6 16;
+    -fx-cursor: hand;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.view-toggle:hover { -fx-text-fill: #2e2e41; }
+.view-toggle:selected {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #2e2e41;
+    -fx-effect: dropshadow(gaussian, rgba(30,30,60,0.10), 6, 0, 0, 1);
+}
+
+/* ---------- Kanban ---------- */
+.board-column {
+    -fx-background-color: #e9eaee;
+    -fx-background-radius: 12;
+    -fx-padding: 14 10 10 10;
+    -fx-border-color: transparent;
+    -fx-border-width: 2;
+    -fx-border-radius: 12;
+}
+.board-column-drop {
+    -fx-background-color: #e1e6f0;
+    -fx-border-color: #2e2e41;
+    -fx-border-style: segments(6, 4);
+}
+
+.board-column-title  { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #2d5b73; }
+.board-title-doing   { -fx-text-fill: #b7791f; }
+.board-title-done    { -fx-text-fill: #2f855a; }
+.board-column-count {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10;
+    -fx-text-fill: #555566;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 8;
+}
+
+.board-scroll,
+.board-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.board-scroll > .scroll-bar { -fx-opacity: 0.6; }
+.board-cards { -fx-padding: 2 2 6 2; -fx-background-color: transparent; }
+
+.board-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10;
+    -fx-padding: 12 14;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(30,30,60,0.08), 8, 0, 0, 2);
+}
+.board-card:hover          { -fx-effect: dropshadow(gaussian, rgba(30,30,60,0.16), 12, 0, 0, 3); }
+.board-card-selected       { -fx-border-color: #2e2e41; }
+.board-card-title          { -fx-font-size: 13px; -fx-text-fill: #333344; }
+.board-card-title-done     { -fx-strikethrough: true; -fx-text-fill: #999999; }
+.board-card-meta           { -fx-font-size: 11px; -fx-text-fill: #9a9aa5; }
+.board-empty               { -fx-text-fill: #9a9aa5; -fx-font-size: 12px; -fx-padding: 10 4; }

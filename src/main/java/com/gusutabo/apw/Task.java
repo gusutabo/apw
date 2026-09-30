@@ -10,6 +10,7 @@ public class Task {
     private String details;
     private boolean done;
     private String category;
+    private TaskStatus status;
 
     private final ObservableList<String> subtasks =
             FXCollections.observableArrayList();
@@ -20,6 +21,7 @@ public class Task {
         this.details = "";
         this.done = false;
         this.category = "None";
+        this.status = TaskStatus.TODO;
     }
 
     public int getId() {
@@ -46,8 +48,28 @@ public class Task {
         return done;
     }
 
+    /**
+     * Marks the task as done (moves it to the DONE column) or reopens it
+     * (DONE goes back to TODO; TODO and DOING are kept as they are).
+     */
     public void setDone(boolean done) {
         this.done = done;
+
+        if (done) {
+            this.status = TaskStatus.DONE;
+        } else if (this.status == TaskStatus.DONE) {
+            this.status = TaskStatus.TODO;
+        }
+    }
+
+    public TaskStatus getStatus() {
+        return status;
+    }
+
+    /** Keeps the legacy {@code done} flag in sync with the kanban status. */
+    public void setStatus(TaskStatus status) {
+        this.status = status == null ? TaskStatus.TODO : status;
+        this.done = this.status == TaskStatus.DONE;
     }
 
     public String getCategory() {
