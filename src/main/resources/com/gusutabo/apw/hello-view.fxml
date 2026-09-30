@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox prefHeight="650.0" prefWidth="1050.0" styleClass="app-root"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.gusutabo.apw.HelloController">
+
+    <HBox spacing="24.0" VBox.vgrow="ALWAYS">
+        <padding><Insets top="24.0" right="28.0" bottom="24.0" left="28.0"/></padding>
+
+        <!-- COLUNA PRINCIPAL -->
+        <VBox spacing="20.0" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <Label text="Today" styleClass="page-title"/>
+                <Label fx:id="taskCount" text="0" styleClass="count-pill"/>
+            </HBox>
+
+            <VBox styleClass="card" VBox.vgrow="ALWAYS">
+                <ListView fx:id="taskListView" VBox.vgrow="ALWAYS"/>
+            </VBox>
+        </VBox>
+
+        <!-- PAINEL DE DETALHES -->
+        <VBox spacing="14.0" prefWidth="340.0" minWidth="340.0" maxWidth="340.0" styleClass="card">
+            <padding><Insets top="22.0" right="22.0" bottom="22.0" left="22.0"/></padding>
+
+            <Label text="Task details" styleClass="section-title"/>
+
+            <VBox spacing="6.0">
+                <Label text="Title" styleClass="field-label"/>
+                <TextField fx:id="taskInput" promptText="Task title" styleClass="input"/>
+            </VBox>
+
+            <VBox spacing="6.0">
+                <Label text="Description" styleClass="field-label"/>
+                <TextArea fx:id="descriptionInput" promptText="Description..."
+                          prefHeight="90.0" wrapText="true" styleClass="input"/>
+            </VBox>
+
+            <VBox spacing="6.0">
+                <Label text="Category" styleClass="field-label"/>
+                <ComboBox fx:id="categoryComboBox" maxWidth="Infinity" promptText="Choose a category"/>
+            </VBox>
+
+            <CheckBox fx:id="completedCheckBox" text="Mark as completed" onAction="#onToggleCompleted"/>
+
+            <VBox spacing="6.0" VBox.vgrow="ALWAYS">
+                <Label text="Subtasks" styleClass="field-label"/>
+                <ListView fx:id="subtaskListView" VBox.vgrow="ALWAYS" prefHeight="120.0"/>
+                <Button text="+ Add New Subtask" onAction="#onAddSubtask" styleClass="link-button"/>
+            </VBox>
+
+            <VBox spacing="8.0">
+                <Button text="+ Add Task" onAction="#onAddTask" maxWidth="Infinity" styleClass="btn-primary"/>
+                <HBox spacing="8.0">
+                    <Button text="Delete" onAction="#onRemoveTask" maxWidth="Infinity"
+                            HBox.hgrow="ALWAYS" styleClass="btn-ghost"/>
+                    <Button text="Save changes" onAction="#onSaveChanges" maxWidth="Infinity"
+                            HBox.hgrow="ALWAYS" styleClass="btn-secondary"/>
+                </HBox>
+            </VBox>
+        </VBox>
+    </HBox>
+</VBox>
