@@ -31,12 +31,18 @@ jobs:
 
       - name: Prepare application and MySQL dependencies
         run: |
-          .\mvnw.cmd -B dependency:copy-dependencies -DincludeScope=runtime -DexcludeGroupIds=org.openjfx -DoutputDirectory=target/jpackage-input
+          $inputDirectory = Join-Path $env:GITHUB_WORKSPACE 'target/jpackage-input'
+          New-Item -ItemType Directory -Force -Path $inputDirectory | Out-Null
+          .\mvnw.cmd -B dependency:copy-dependencies -DincludeScope=runtime -DexcludeGroupIds=org.openjfx "-DoutputDirectory=$inputDirectory"
           $appJar = Get-ChildItem target -Filter 'apw-*.jar' -File | Where-Object { $_.Name -notlike '*-sources.jar' -and $_.Name -notlike '*-javadoc.jar' } | Select-Object -First 1
           if (-not $appJar) {
             throw 'Maven did not produce the APW application JAR under target.'
           }
-          Copy-Item $appJar.FullName target/jpackage-input/apw.jar
+          $packagedJar = Join-Path $inputDirectory 'apw.jar'
+          Copy-Item $appJar.FullName $packagedJar
+          if (-not (Test-Path $packagedJar)) {
+            throw 'Failed to copy the APW application JAR into the jpackage input directory.'
+          }
 
       - name: Build Windows installer
         run: >-
