@@ -1,3 +1,4 @@
+```yaml
 name: Windows build
 
 on:
@@ -17,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -33,13 +34,24 @@ jobs:
         run: |
           $inputDirectory = Join-Path $env:GITHUB_WORKSPACE 'target/jpackage-input'
           New-Item -ItemType Directory -Force -Path $inputDirectory | Out-Null
-          .\mvnw.cmd -B dependency:copy-dependencies -DincludeScope=runtime -DexcludeGroupIds=org.openjfx "-DoutputDirectory=$inputDirectory"
-          $appJar = Get-ChildItem target -Filter 'apw-*.jar' -File | Where-Object { $_.Name -notlike '*-sources.jar' -and $_.Name -notlike '*-javadoc.jar' } | Select-Object -First 1
+
+          .\mvnw.cmd -B dependency:copy-dependencies "-DincludeScope=runtime" "-DexcludeGroupIds=org.openjfx" "-DoutputDirectory=$inputDirectory"
+
+          $appJar = Get-ChildItem target -Filter 'apw-*.jar' -File |
+            Where-Object {
+              $_.Name -notlike '*-sources.jar' -and
+              $_.Name -notlike '*-javadoc.jar'
+            } |
+            Select-Object -First 1
+
           if (-not $appJar) {
             throw 'Maven did not produce the APW application JAR under target.'
           }
+
           $packagedJar = Join-Path $inputDirectory 'apw.jar'
+
           Copy-Item $appJar.FullName $packagedJar
+
           if (-not (Test-Path $packagedJar)) {
             throw 'Failed to copy the APW application JAR into the jpackage input directory.'
           }
@@ -70,3 +82,8 @@ jobs:
           path: target/installer/*.msi
           if-no-files-found: error
           retention-days: 14
+```
+
+Esse é o `windows-build.yml` da branch `feat/kanban`, com a correção aplicada ao comando que causou o erro.
+
+**Certeza: alta.** O próximo passo é substituir o conteúdo de `.github/workflows/windows-build.yml`, fazer commit e executar o workflow novamente.
