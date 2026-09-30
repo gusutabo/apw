@@ -7,7 +7,7 @@
 <VBox prefHeight="650.0" prefWidth="1050.0" styleClass="app-root"
       xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.gusutabo.apw.HelloController">
+    fx:controller="com.gusutabo.apw.TaskController">
 
     <HBox spacing="24.0" VBox.vgrow="ALWAYS">
         <padding><Insets top="24.0" right="28.0" bottom="24.0" left="28.0"/></padding>
@@ -17,11 +17,26 @@
             <HBox alignment="CENTER_LEFT" spacing="12.0">
                 <Label text="Today" styleClass="page-title"/>
                 <Label fx:id="taskCount" text="0" styleClass="count-pill"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <HBox styleClass="view-switch">
+                    <ToggleButton fx:id="listViewButton" text="List" selected="true"
+                                  onAction="#onShowList" styleClass="view-toggle">
+                        <toggleGroup><ToggleGroup fx:id="viewToggleGroup"/></toggleGroup>
+                    </ToggleButton>
+                    <ToggleButton fx:id="boardViewButton" text="Board"
+                                  onAction="#onShowBoard" styleClass="view-toggle"
+                                  toggleGroup="$viewToggleGroup"/>
+                </HBox>
             </HBox>
 
-            <VBox styleClass="card" VBox.vgrow="ALWAYS">
-                <ListView fx:id="taskListView" VBox.vgrow="ALWAYS"/>
-            </VBox>
+            <StackPane VBox.vgrow="ALWAYS">
+                <VBox fx:id="listContainer" styleClass="card">
+                    <ListView fx:id="taskListView" VBox.vgrow="ALWAYS"/>
+                </VBox>
+
+                <!-- KANBAN: as colunas são criadas no controller -->
+                <HBox fx:id="boardContainer" spacing="14.0" visible="false" managed="false"/>
+            </StackPane>
         </VBox>
 
         <!-- PAINEL DE DETALHES -->
@@ -44,6 +59,11 @@
             <VBox spacing="6.0">
                 <Label text="Category" styleClass="field-label"/>
                 <ComboBox fx:id="categoryComboBox" maxWidth="Infinity" promptText="Choose a category"/>
+            </VBox>
+
+            <VBox spacing="6.0">
+                <Label text="Status" styleClass="field-label"/>
+                <ComboBox fx:id="statusComboBox" maxWidth="Infinity" promptText="Choose a status"/>
             </VBox>
 
             <CheckBox fx:id="completedCheckBox" text="Mark as completed" onAction="#onToggleCompleted"/>

@@ -1,6 +1,6 @@
 # apw (Another Pennyworth)
 
-A desktop task manager built with Java 21, JavaFX, and MySQL. It supports task descriptions and details, completion status, categories, and subtasks.
+A desktop task manager built with Java 21, JavaFX, and MySQL. It supports task descriptions and details, completion status, categories, subtasks, and a kanban board (To do / In progress / Done) with drag and drop.
 
 ## Requirements
 
@@ -42,6 +42,12 @@ Start the application with Maven:
 ```bash
 mvn clean javafx:run
 ```
+
+## Kanban
+
+Use the **List / Board** switch at the top to change views. In the board, drag a card to another column to change its status, or click it to edit it in the details panel. The **Status** field in the details panel does the same thing, and *Done* is kept in sync with *Mark as completed*.
+
+Databases created by older versions get the new `status` column automatically at startup (tasks already completed go to *Done*).
 
 ## License
 

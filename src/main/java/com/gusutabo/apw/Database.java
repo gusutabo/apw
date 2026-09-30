@@ -51,6 +51,7 @@ public final class Database {
                         details TEXT,
                         done BOOLEAN NOT NULL DEFAULT FALSE,
                         category VARCHAR(50) NOT NULL DEFAULT 'None',
+                        status VARCHAR(20) NOT NULL DEFAULT 'TODO',
                         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
                     """);
@@ -68,6 +69,7 @@ public final class Database {
         }
 
         ensureCategoryColumn();
+        ensureStatusColumn();
     }
 
     private static void ensureCategoryColumn() throws SQLException {
@@ -100,6 +102,41 @@ public final class Database {
         }
     }
 
+    /** Adds the kanban status column to databases created by older versions. */
+    private static void ensureStatusColumn() throws SQLException {
+        String sql = """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = ?
+                  AND table_name = 'tasks'
+                  AND column_name = 'status'
+                """;
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, DB_NAME);
+
+            try (ResultSet result = statement.executeQuery()) {
+                result.next();
+
+                if (result.getInt(1) == 0) {
+                    try (Statement alter = connection.createStatement()) {
+                        alter.executeUpdate(
+                                "ALTER TABLE tasks "
+                                        + "ADD COLUMN status VARCHAR(20) "
+                                        + "NOT NULL DEFAULT 'TODO'"
+                        );
+                        // Tarefas já concluídas vão direto para a coluna Done
+                        alter.executeUpdate(
+                                "UPDATE tasks SET status = 'DONE' WHERE done = TRUE"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL, USER, PASSWORD);
     }
@@ -108,7 +145,7 @@ public final class Database {
         List<Task> result = new ArrayList<>();
 
         String taskSql = """
-                SELECT id, description, details, done, category
+                SELECT id, description, details, done, category, status
                 FROM tasks
                 ORDER BY id
                 """;
@@ -125,8 +162,8 @@ public final class Database {
                 );
 
                 task.setDetails(tasks.getString("details"));
-                task.setDone(tasks.getBoolean("done"));
                 task.setCategory(tasks.getString("category"));
+                task.setStatus(TaskStatus.fromDatabase(tasks.getString("status")));
 
                 loadSubtasks(connection, task);
                 result.add(task);
@@ -166,8 +203,8 @@ public final class Database {
 
     public static int insertTask(Task task) throws SQLException {
         String sql = """
-                INSERT INTO tasks (description, details, done, category)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO tasks (description, details, done, category, status)
+                VALUES (?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = getConnection();
@@ -181,6 +218,7 @@ public final class Database {
             statement.setString(2, task.getDetails());
             statement.setBoolean(3, task.isDone());
             statement.setString(4, task.getCategory());
+            statement.setString(5, task.getStatus().name());
             statement.executeUpdate();
 
             try (ResultSet keys = statement.getGeneratedKeys()) {
@@ -198,7 +236,7 @@ public final class Database {
     public static void updateTask(Task task) throws SQLException {
         String sql = """
                 UPDATE tasks
-                SET description = ?, details = ?, done = ?, category = ?
+                SET description = ?, details = ?, done = ?, category = ?, status = ?
                 WHERE id = ?
                 """;
 
@@ -210,7 +248,8 @@ public final class Database {
             statement.setString(2, task.getDetails());
             statement.setBoolean(3, task.isDone());
             statement.setString(4, task.getCategory());
-            statement.setInt(5, task.getId());
+            statement.setString(5, task.getStatus().name());
+            statement.setInt(6, task.getId());
             statement.executeUpdate();
         }
     }
