@@ -26,10 +26,34 @@ jobs:
       - name: Build Windows runtime image
         run: .\mvnw.cmd -B clean javafx:jlink
 
-      - name: Upload Windows application
+      - name: Prepare application and MySQL dependencies
+        run: |
+          .\mvnw.cmd -B package dependency:copy-dependencies -DincludeScope=runtime -DexcludeGroupIds=org.openjfx -DoutputDirectory=target/jpackage-input
+          Copy-Item target/apw-1.0-SNAPSHOT.jar target/jpackage-input/apw.jar
+
+      - name: Build Windows installer
+        run: >-
+          jpackage.exe
+          --type msi
+          --name APW
+          --app-version 1.0.0
+          --vendor "Gusutabo"
+          --input target/jpackage-input
+          --main-jar apw.jar
+          --main-class com.gusutabo.apw.Launcher
+          --runtime-image target/app
+          --java-options "--add-modules=javafx.controls,javafx.fxml"
+          --win-upgrade-uuid d9c1f094-89c0-4b57-9a9f-043bfa0e2de2
+          --win-per-user-install
+          --win-menu
+          --win-menu-group APW
+          --win-shortcut
+          --dest target/installer
+
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: apw-windows-x64
-          path: target/app/
+          name: apw-windows-x64-installer
+          path: target/installer/*.msi
           if-no-files-found: error
           retention-days: 14
